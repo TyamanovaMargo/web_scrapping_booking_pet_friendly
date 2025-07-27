@@ -10,10 +10,10 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 def setup_driver():
     """Setup Chrome WebDriver with options"""
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    # Убираем headless чтобы видеть что происходит
+    # chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     
     try:
@@ -27,183 +27,202 @@ def setup_driver():
         driver = webdriver.Chrome(options=chrome_options)
         return driver
 
-def scrape_booking_pet_friendly_camping(location="Israel", max_results=50):
+def simple_pet_check(driver, url, property_name):
     """
-    Scrape pet-friendly camping sites from Booking.com
-    
-    Args:
-        location (str): Location to search for (default: "Israel")
-        max_results (int): Maximum number of results to collect
-    
-    Returns:
-        list: List of dictionaries with camping site data
+    Упрощенная проверка - ищем любые упоминания о животных
+    """
+    try:
+        print(f"   🔍 Checking: {property_name}")
+        driver.get(url)
+        time.sleep(3)
+        
+        # Получаем текст страницы
+        page_text = driver.page_source.lower()
+        
+        # Упрощенная проверка - если есть слово pets/animals и нет явного запрета
+        has_pet_mention = any(word in page_text for word in [
+            'pet', 'dog', 'cat', 'animal', 'puppy', 'kitten'
+        ])
+        
+        has_explicit_ban = any(phrase in page_text for phrase in [
+            'no pets', 'pets not allowed', 'no animals'
+        ])
+        
+        print(f"      Pet mention: {has_pet_mention}")
+        print(f"      Explicit ban: {has_explicit_ban}")
+        
+        # Простая логика: если есть упоминание и нет запрета - считаем подходящим
+        if has_pet_mention and not has_explicit_ban:
+            return True, "Pets likely allowed"
+        elif has_explicit_ban:
+            return False, "Pets explicitly banned"
+        else:
+            return False, "No pet policy found"
+            
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+        return False, f"Error: {e}"
+
+def scrape_any_pet_friendly_accommodation():
+    """
+    Упрощенный скрапер - ищем любые объекты размещения с животными
     """
     
     driver = setup_driver()
-    campsites_data = []
+    found_places = []
     
     try:
-        # Build search URL with filters
-        base_url = "https://www.booking.com/searchresults.html"
-        search_params = f"ss={location}&ht_id=204&pets=1&nflt=ht_id%3D204%3Bpets%3D1"
-        search_url = f"{base_url}?{search_params}"
+        # Простой поиск по Израилю с pet фильтром
+        search_url = "https://www.booking.com/searchresults.html?ss=Israel&pets=1"
         
         print(f"🔍 Searching: {search_url}")
         driver.get(search_url)
+        time.sleep(5)
         
-        # Wait for results to load
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "[data-testid='property-card']"))
-        )
-        
-        # Handle cookie banner if present
+        # Handle cookies
         try:
-            cookie_button = driver.find_element(By.ID, "onetrust-accept-btn-handler")
+            cookie_button = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
+            )
             cookie_button.click()
             time.sleep(2)
-        except NoSuchElementException:
+        except:
             pass
         
-        # Get all property cards
-        property_cards = driver.find_elements(By.CSS_SELECTOR, "[data-testid='property-card']")
+        # Ищем любые карточки объектов
+        property_selectors = [
+            "[data-testid='property-card']",
+            ".sr_property_block",
+            ".sr_item"
+        ]
         
-        print(f"📊 Found {len(property_cards)} properties")
+        properties = []
+        for selector in property_selectors:
+            properties = driver.find_elements(By.CSS_SELECTOR, selector)
+            if properties:
+                print(f"✅ Found {len(properties)} properties with selector: {selector}")
+                break
         
-        for i, card in enumerate(property_cards[:max_results]):
+        if not properties:
+            print("❌ No properties found with any selector")
+            # Попробуем посмотреть что вообще есть на странице
+            print("Page title:", driver.title)
+            print("Current URL:", driver.current_url)
+            return []
+        
+        # Берем первые 10 для проверки
+        for i, card in enumerate(properties[:10]):
             try:
-                print(f"Processing property {i+1}/{min(len(property_cards), max_results)}...")
+                print(f"\n[{i+1}/10] Processing property...")
                 
-                # Extract name
-                try:
-                    name_element = card.find_element(By.CSS_SELECTOR, "[data-testid='title']")
-                    name = name_element.text.strip()
-                except NoSuchElementException:
-                    name = "Unknown Campsite"
+                # Ищем название
+                name = "Unknown Property"
+                name_selectors = [
+                    "[data-testid='title']",
+                    "h3 a span",
+                    ".sr-hotel__name",
+                    "h3"
+                ]
                 
-                # Extract URL
-                try:
-                    link_element = card.find_element(By.CSS_SELECTOR, "[data-testid='title-link']")
-                    url = link_element.get_attribute('href')
-                except NoSuchElementException:
+                for selector in name_selectors:
                     try:
-                        link_element = name_element.find_element(By.XPATH, ".//a")
-                        url = link_element.get_attribute('href')
+                        name_element = card.find_element(By.CSS_SELECTOR, selector)
+                        name = name_element.text.strip()
+                        if name and len(name) > 3:
+                            break
                     except:
-                        url = "No URL available"
+                        continue
                 
-                # Extract location
-                try:
-                    location_element = card.find_element(By.CSS_SELECTOR, "[data-testid='address']")
-                    location_text = location_element.text.strip()
-                except NoSuchElementException:
-                    location_text = location
+                print(f"   Name: {name}")
                 
-                # Extract description
-                try:
-                    desc_elements = card.find_elements(By.CSS_SELECTOR, "[data-testid='property-card:property-description']")
-                    if desc_elements:
-                        description = desc_elements[0].text.strip()[:300] + "..."
-                    else:
-                        description = "Camping accommodation with pet-friendly facilities"
-                except:
-                    description = "Pet-friendly camping site"
+                # Ищем URL
+                url = ""
+                url_selectors = [
+                    "a[href*='hotel']",
+                    "h3 a", 
+                    "a"
+                ]
                 
-                # Extract rating if available
-                try:
-                    rating_element = card.find_element(By.CSS_SELECTOR, "[data-testid='review-score']")
-                    rating = rating_element.text.strip()
-                except NoSuchElementException:
-                    rating = "No rating"
+                for selector in url_selectors:
+                    try:
+                        link_element = card.find_element(By.CSS_SELECTOR, selector)
+                        url = link_element.get_attribute('href')
+                        if url and 'booking.com' in url:
+                            break
+                    except:
+                        continue
                 
-                # Extract price if available
-                try:
-                    price_element = card.find_element(By.CSS_SELECTOR, "[data-testid='price-and-discounted-price']")
-                    price = price_element.text.strip()
-                except NoSuchElementException:
-                    price = "Price on request"
+                if not url:
+                    print(f"   ⚠️ No URL found")
+                    continue
                 
-                # Compile data
-                campsite_data = {
-                    'name': name,
-                    'location': location_text,
-                    'description': description,
-                    'pet_policy': 'Pets allowed - Check property details for specific policies',
-                    'rating': rating,
-                    'price': price,
-                    'url': url
-                }
+                print(f"   URL: {url[:50]}...")
                 
-                campsites_data.append(campsite_data)
-                print(f"✅ Collected: {name}")
+                # Простая проверка
+                is_pet_friendly, reason = simple_pet_check(driver, url, name)
+                
+                if is_pet_friendly:
+                    # Возвращаемся к списку
+                    driver.back()
+                    time.sleep(2)
+                    
+                    property_data = {
+                        'name': name,
+                        'location': 'Israel',
+                        'description': 'Pet-friendly accommodation in Israel',
+                        'pet_policy': reason,
+                        'rating': 'Check on site',
+                        'price': 'Check on site',
+                        'url': url
+                    }
+                    
+                    found_places.append(property_data)
+                    print(f"   ✅ ADDED: {name}")
+                else:
+                    print(f"   ❌ REJECTED: {reason}")
+                    # Возвращаемся к списку
+                    driver.back()
+                    time.sleep(2)
                 
             except Exception as e:
-                print(f"❌ Error processing property {i+1}: {e}")
+                print(f"   ❌ Error processing property {i+1}: {e}")
                 continue
-            
-            # Respectful delay
-            time.sleep(2)
         
-        # Try to load more results if needed
-        if len(campsites_data) < max_results:
-            try:
-                load_more_button = driver.find_element(By.CSS_SELECTOR, "[data-testid='search-results-load-more']")
-                load_more_button.click()
-                time.sleep(3)
-                print("🔄 Loading more results...")
-            except NoSuchElementException:
-                print("📄 No more results to load")
-                
-    except TimeoutException:
-        print("❌ Timeout: Page took too long to load")
     except Exception as e:
-        print(f"❌ Error during scraping: {e}")
+        print(f"❌ Main error: {e}")
     finally:
         driver.quit()
     
-    return campsites_data
-
-def save_to_csv(data, filename='pet_friendly_camping_booking.csv'):
-    """Save scraped data to CSV file"""
-    if not data:
-        print("❌ No data to save")
-        return None
-    
-    df = pd.DataFrame(data)
-    df.to_csv(filename, index=False, encoding='utf-8')
-    
-    print(f"✅ Data saved to {filename}")
-    print(f"📊 Total campsites: {len(data)}")
-    print(f"📋 Columns: {list(df.columns)}")
-    
-    return df
+    return found_places
 
 def main():
-    """Main scraper function"""
-    print("🏕️ Pet-Friendly Camping Scraper for Booking.com")
+    """Упрощенная главная функция"""
+    print("🏕️ SIMPLIFIED Pet-Friendly Accommodation Finder")
     print("=" * 50)
     
-    # Get user input
-    location = input("Enter location to search (default: Israel): ").strip() or "Israel"
-    max_results = input("Max results to collect (default: 20): ").strip()
-    max_results = int(max_results) if max_results.isdigit() else 20
+    print("🔍 Looking for ANY pet-friendly places in Israel...")
+    print("⚠️ Browser will be visible for debugging")
     
-    print(f"🔍 Searching for pet-friendly camping in {location}...")
+    # Запускаем поиск
+    places = scrape_any_pet_friendly_accommodation()
     
-    # Scrape data
-    campsites = scrape_booking_pet_friendly_camping(location, max_results)
-    
-    if campsites:
-        # Save to CSV
-        df = save_to_csv(campsites)
+    if places:
+        # Сохраняем
+        df = pd.DataFrame(places)
+        df.to_csv('simple_pet_friendly_israel.csv', index=False, encoding='utf-8')
         
-        # Display sample
-        print("\n📋 Sample of collected data:")
-        print(df[['name', 'location', 'rating']].head())
+        print(f"\n🎉 SUCCESS! Found {len(places)} places:")
+        for i, place in enumerate(places, 1):
+            print(f"{i}. {place['name']}")
         
-        print(f"\n🎉 Scraping completed successfully!")
-        print(f"📁 File saved: pet_friendly_camping_booking.csv")
+        print(f"\n📁 Saved to: simple_pet_friendly_israel.csv")
     else:
-        print("❌ No data collected. Try adjusting search parameters.")
+        print("\n❌ No places found. Possible issues:")
+        print("1. Booking.com changed their structure")
+        print("2. No pet-friendly places in Israel")
+        print("3. Geo-blocking or captcha")
+        print("\n💡 Try running without --headless to see what's happening")
 
 if __name__ == "__main__":
     main()
+
