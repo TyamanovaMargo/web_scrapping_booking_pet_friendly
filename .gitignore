@@ -1,0 +1,51 @@
+# Byte-code / cache
+__pycache__/
+*.py[cod]
+
+# Virtual envs
+.env
+.venv
+env/
+venv/
+
+# Packages / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test & coverage artefacts
+.tox/
+.pytest_cache/
+htmlcov/
+.coverage*
+
+# Logs & temp
+*.log
+*.tmp
+temp/
+tmp/
+
+# Jupyter
+.ipynb_checkpoints
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System
+.DS_Store
+Thumbs.db
+
+# Selenium drivers
+chromedriver*
+geckodriver*
+
+# Data artefacts
+data/*.csv
+
+# Docs build
+docs/_build/
