@@ -1,261 +1,202 @@
-Вот README.md переписанный в одном блоке с правильным markdown форматированием:
+На основе упрощённой версии веб-скрапера, вот обновлённый README.md:
 
 ```markdown
-# Pet-Friendly Campsites in Israel - Booking.com Collector
+# Pet-Friendly Camping Scraper - Booking.com
 
-A Python project to automatically collect information about pet-friendly camping sites in Israel from Booking.com and save the results in a structured CSV file.
+A simple Python web scraper to find pet-friendly camping sites on Booking.com and save results to CSV.
 
 ## 🎯 Project Overview
 
-This tool searches Booking.com for campsites and camping accommodations in Israel that explicitly allow pets, extracts relevant information, and saves it to a CSV file for easy analysis and reference.
+This tool automatically searches Booking.com for camping accommodations that allow pets in any location worldwide, extracts detailed information, and saves it to a CSV file for easy analysis.
 
-## 📋 Features
+## ✨ Features
 
-- **Automated Web Scraping**: Uses Selenium WebDriver to automatically search and extract data
-- **Manual Collection Option**: Fallback method with example data and clear instructions
-- **Pet-Friendly Focus**: Only collects campsites that explicitly allow pets
-- **Structured Output**: Saves data in CSV format with standardized columns
-- **Error Handling**: Robust error handling and fallback options
-- **User-Friendly**: Interactive menu system for easy operation
+- **Automated Web Scraping**: Uses Selenium to search Booking.com directly
+- **Pet-Friendly Filter**: Only collects campsites that explicitly allow pets
+- **Flexible Location Search**: Search any country or region, not just Israel
+- **Comprehensive Data**: Extracts name, location, description, rating, price, and URL
+- **CSV Export**: Saves all data in structured CSV format
+- **Interactive Interface**: User-friendly prompts for location and result limits
+- **Error Handling**: Robust handling of missing elements and timeouts
 
 ## 🛠️ Requirements
 
 ### System Requirements
 - Python 3.7+
-- Chrome browser (for automated scraping)
+- Google Chrome browser
 - Internet connection
 
-### Python Packages
+### Dependencies
 ```
-pip install -r requirements.txt
-```
-
-## 🚀 Installation
-
-1. **Clone the repository**
-```
-git clone https://github.com/yourusername/pet-friendly-campsites-israel.git
-cd pet-friendly-campsites-israel
-```
-
-2. **Create virtual environment (recommended)**
-```
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies**
-```
-pip install -r requirements.txt
-```
-
-## 📁 Project Structure
-
-```
-pet-friendly-campsites-israel/
-│
-├── main.py                    # Main execution script
-├── requirements.txt           # Python dependencies
-├── requirements-dev.txt       # Development dependencies
-├── README.md                 # This file
-├── .gitignore                # Git ignore rules
-│
-├── data/
-│   └── pet_friendly_campsites_israel_booking.csv  # Output file
-│
-└── docs/
-    └── manual_collection_guide.md  # Manual collection instructions
+pip install pandas selenium webdriver-manager
 ```
 
 ## 🚀 Quick Start
 
-### Option 1: Automated Collection
-
+### 1. Installation
 ```
-python main.py
-# Choose option 1 when prompted
-```
+# Clone or download the project
+git clone https://github.com/yourusername/pet-friendly-camping-scraper.git
+cd pet-friendly-camping-scraper
 
-### Option 2: Manual Collection
-
-```
-python main.py
-# Choose option 2 when prompted
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-## 📊 Output Format
+### 2. Run the Scraper
+```
+python scraper.py
+```
 
-The tool generates a CSV file with the following columns:
+### 3. Interactive Setup
+The scraper will prompt you for:
+- **Location**: Enter any location (e.g., "Israel", "Italy", "California")
+- **Max Results**: Number of campsites to collect (default: 20)
+
+## 📊 Output Data
+
+The scraper generates a CSV file with the following columns:
 
 | Column | Description | Example |
 |--------|-------------|---------|
-| `name` | Campsite name | "Faran Camping" |
-| `location` | Location/Region | "Eilat, Southern District" |
-| `description` | Brief description | "Desert camping experience near Eilat..." |
-| `pet_policy` | Pet policy details | "Pets allowed. Contact property for policies." |
-| `url` | Booking.com URL | "https://www.booking.com/hotel/il/..." |
+| `name` | Campsite name | "Desert Oasis Camping" |
+| `location` | Full location/address | "Eilat, Southern District" |
+| `description` | Property description | "Family-friendly desert camping..." |
+| `pet_policy` | Pet policy info | "Pets allowed - Check property details" |
+| `rating` | Guest rating | "8.5" |
+| `price` | Price information | "From $45/night" |
+| `url` | Direct Booking.com link | "https://www.booking.com/..." |
 
 ## 💻 Usage Examples
 
 ### Basic Usage
 ```
-from main import search_booking_campsites, save_to_csv
-
-# Automated collection
-campsites = search_booking_campsites()
-df = save_to_csv(campsites)
-
-print(f"Collected {len(df)} pet-friendly campsites")
+python scraper.py
+# Enter: Italy
+# Enter: 30
 ```
 
-### Manual Data Addition
+### Programmatic Usage
 ```
-# Add your own campsite data
-new_campsite = {
-    "name": "My Campsite",
-    "location": "Tel Aviv, Central District", 
-    "description": "Great camping spot",
-    "pet_policy": "Pets welcome",
-    "url": "https://www.booking.com/..."
-}
+from scraper import scrape_booking_pet_friendly_camping, save_to_csv
+
+# Scrape data
+campsites = scrape_booking_pet_friendly_camping("France", max_results=25)
+
+# Save to CSV
+df = save_to_csv(campsites, "france_pet_camping.csv")
+
+print(f"Collected {len(campsites)} pet-friendly campsites")
 ```
 
 ## 🔧 Configuration
 
-### Selenium WebDriver Setup
+### Chrome Options
+The scraper runs in headless mode by default. To see the browser:
 ```
-# Chrome options for automated scraping
-chrome_options = Options()
-chrome_options.add_argument("--headless")  # Run in background
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
+# In setup_driver() function, comment out:
+# chrome_options.add_argument("--headless")
 ```
 
 ### Search Parameters
-```
-# Booking.com search parameters
-params = {
-    'ss': 'Israel',      # Destination
-    'ht_id': '204',      # Property type: Camping
-    'pets': '1',         # Pets allowed filter
-}
-```
-
-## 📖 Manual Collection Guide
-
-If automated scraping doesn't work, follow these steps:
-
-1. **Go to Booking.com**
-2. **Search for "Israel"**
-3. **Apply Filters:**
-   - Property type: "Camping"
-   - Facilities: "Pets allowed"
-4. **For each result, collect:**
-   - Exact name from listing
-   - Location/address
-   - Description from property page
-   - Pet policy from "House rules"
-   - Full Booking.com URL
-
-## 🛡️ Error Handling
-
-The script includes comprehensive error handling:
-
-- **Timeout Protection**: Waits for page elements to load
-- **Missing Data**: Handles cases where some information isn't available
-- **Network Issues**: Graceful degradation with manual fallback
-- **Rate Limiting**: Includes delays to respect server resources
+- **Location**: Any country, region, or city
+- **Max Results**: Adjust based on your needs (default: 20)
+- **Delay**: 2-second delay between requests (respectful scraping)
 
 ## 📈 Sample Output
 
 ```
-name,location,description,pet_policy,url
-Faran Camping,Eilat Southern District,Desert camping experience near Eilat,Pets allowed. Contact property for policies,https://www.booking.com/hotel/il/faran-camping.html
-Kfar Blum Camping,Upper Galilee Northern District,Camping site in Jordan Valley,Pets welcome. Inform in advance,https://www.booking.com/hotel/il/kfar-blum-camping.html
+name,location,description,pet_policy,rating,price,url
+Faran Camping,Eilat Israel,Desert camping near Red Sea,Pets allowed - Check details,8.2,From $35/night,https://booking.com/...
+Mountain View Camp,Galilee Israel,Scenic camping in nature,Pets welcome with advance notice,9.1,From $42/night,https://booking.com/...
 ```
 
-## ⚠️ Important Notes
+## 🛡️ Error Handling
 
-- **Respect Booking.com's Terms**: This tool is for educational/research purposes
-- **Verify Pet Policies**: Always confirm pet policies directly with properties
-- **Rate Limiting**: Script includes delays to be respectful to servers
-- **Data Accuracy**: Information is collected from public listings; verify independently
+The scraper includes:
+- **Timeout Protection**: 15-second wait for page loads
+- **Missing Element Handling**: Graceful handling of incomplete data
+- **Cookie Consent**: Automatic handling of cookie banners
+- **Rate Limiting**: Respectful 2-second delays between requests
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-**Chrome Driver Not Found:**
+**ChromeDriver Not Found:**
 ```
-# Install ChromeDriver
-# For Ubuntu/Debian:
-sudo apt-get install chromium-chromedriver
-
-# For macOS:
-brew install chromedriver
-```
-
-**Selenium Errors:**
-```
-# Try headless mode if GUI issues occur
-chrome_options.add_argument("--headless")
+# The script auto-downloads ChromeDriver, but if it fails:
+pip install webdriver-manager --upgrade
 ```
 
 **No Results Found:**
-- Check internet connection
-- Verify Booking.com is accessible
-- Try manual collection method
+- Check your internet connection
+- Try a different location (e.g., "France" instead of "Paris")
+- Verify Booking.com is accessible in your region
+
+**Timeout Errors:**
+- Increase timeout in the script (line with `WebDriverWait(driver, 15)`)
+- Check if your internet connection is stable
+
+## ⚠️ Important Notes
+
+- **Respect Terms of Service**: This tool is for educational/research purposes
+- **Rate Limiting**: Built-in delays to be respectful to Booking.com servers
+- **Data Accuracy**: Always verify pet policies directly with properties
+- **Regional Variations**: Results may vary by location and booking policies
+
+## 📝 Project Structure
+
+```
+pet-friendly-camping-scraper/
+├── scraper.py           # Main scraper script
+├── requirements.txt     # Python dependencies
+├── README.md           # This documentation
+└── pet_friendly_camping_booking.csv  # Output file (generated)
+```
+
+## 🎯 Use Cases
+
+- **Trip Planning**: Find pet-friendly camping for vacations
+- **Research**: Analyze pet-friendly accommodation availability
+- **Business Intelligence**: Market research for pet travel industry
+- **Personal Database**: Build your own list of verified pet-friendly camps
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Add new campsites to manual data
-4. Improve error handling
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+2. Create a feature branch
+3. Make improvements (better error handling, additional data fields, etc.)
+4. Submit a pull request
 
 ## 📄 License
 
-This project is for educational and research purposes. Please respect Booking.com's terms of service and robots.txt file.
+This project is for educational and research purposes. Please respect Booking.com's terms of service.
 
-## 👥 Authors
+## 🆘 Support
 
-- **Your Name** - *Initial work* - [YourGitHub](https://github.com/yourusername)
-
-## 🙏 Acknowledgments
-
-- Thanks to Booking.com for providing accessible camping data
-- Selenium and BeautifulSoup communities for excellent documentation
-- Pet-friendly camping community in Israel
-
-## 📞 Support
-
-If you encounter any issues:
-
-1. Check the [Troubleshooting](#-troubleshooting) section
-2. Review the manual collection guide
-3. Ensure all dependencies are installed correctly
-4. Open an issue on GitHub
+If you encounter issues:
+1. Check the troubleshooting section above
+2. Ensure all dependencies are installed correctly
+3. Verify Chrome browser is installed and updated
+4. Try running with a different location
 
 ## 🎉 Success Metrics
 
-After running the script, you should have:
-
-- ✅ CSV file with pet-friendly campsites
-- ✅ Valid URLs for each campsite
-- ✅ Clear pet policy information
-- ✅ Location data for trip planning
+After running the scraper, you should have:
+- ✅ CSV file with pet-friendly camping data
+- ✅ Valid Booking.com URLs for each property
+- ✅ Complete property information (name, location, rating, etc.)
+- ✅ Ready-to-use data for trip planning
 
 ---
 
-**Happy Camping with Your Pets! 🏕️🐕**
+**Happy Pet-Friendly Camping! 🏕️🐕**
 
-## 📊 Project Status
+## 📊 Status
 
-![Python](https://img.shields.io/badge/python-v3.7+-blue.svg)
+![Python](https://img.shields.io/badge/python-3.7+-blue.svg)
+![Selenium](https://img.shields.io/badge/selenium-4.0+-green.svg)
 ![Status](https://img.shields.io/badge/status-active-success.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-и.
+```
 
